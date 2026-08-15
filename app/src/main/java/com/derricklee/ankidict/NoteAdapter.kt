@@ -44,6 +44,7 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
         pinyinField = 4,
         // 5 unconfirmed, 6/7 are the mnemonic image (html/filename, not renderable yet), 8-11 unconfirmed.
         knownFields = setOf(0, 1, 2, 3, 4, 6, 7),
+        revealable = true,
         deckTagLabel = "中文",
         deckTagColorRes = R.color.tag_chinese_red,
     ),
