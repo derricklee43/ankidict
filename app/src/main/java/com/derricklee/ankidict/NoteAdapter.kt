@@ -1,9 +1,11 @@
 package com.derricklee.ankidict
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.derricklee.ankidict.databinding.ItemNoteBinding
 
@@ -22,6 +24,8 @@ private data class NoteLayout(
     // Starts collapsed to just the character, tap to reveal the rest -- mirrors decks that are
     // actually studied front/back in Anki, as opposed to decks meant to be read all at once.
     val revealable: Boolean = false,
+    val deckTagLabel: String? = null,
+    val deckTagColorRes: Int? = null,
 )
 
 private val NIHONGO_SHARK_FIELD_NAMES = listOf(
@@ -40,6 +44,8 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
         pinyinField = 4,
         // 5 unconfirmed, 6/7 are the mnemonic image (html/filename, not renderable yet), 8-11 unconfirmed.
         knownFields = setOf(0, 1, 2, 3, 4, 6, 7),
+        deckTagLabel = "Hanzi",
+        deckTagColorRes = R.color.tag_hanzi_red,
     ),
     NIHONGO_SHARK_KANJI_MODEL_ID to NoteLayout(
         characterField = CHARACTER_FIELD_INDEX.getValue(NIHONGO_SHARK_KANJI_MODEL_ID), // kanji
@@ -47,6 +53,8 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
         mnemonicField = 10, // myStory -- the field the deck's own template actually renders
         knownFields = setOf(2, 3, 4, 5, 7, 8, 9, 10, 15, 16, 17, 18, 19, 20),
         revealable = true,
+        deckTagLabel = "Kanji",
+        deckTagColorRes = R.color.tag_kanji_blue,
     ),
 )
 
@@ -79,6 +87,7 @@ class NoteAdapter : RecyclerView.Adapter<NoteAdapter.ViewHolder>() {
         fun bind(note: NoteResult) {
             val layout = NOTE_LAYOUTS[note.modelId]
 
+            bindDeckTag(layout)
             bindOptional(binding.characterText, layout?.characterField?.let { note.fields.getOrNull(it) })
             bindOptional(binding.pinyinText, layout?.pinyinField?.let { note.fields.getOrNull(it) })
             bindOptional(binding.meaningText, layout?.meaningField?.let { note.fields.getOrNull(it) })
@@ -117,6 +126,17 @@ class NoteAdapter : RecyclerView.Adapter<NoteAdapter.ViewHolder>() {
             binding.metaText.text = metaParts.joinToString("  ·  ")
 
             applyRevealState(layout, note.id)
+        }
+
+        private fun bindDeckTag(layout: NoteLayout?) {
+            if (layout?.deckTagLabel == null || layout.deckTagColorRes == null) {
+                binding.deckTagText.visibility = View.GONE
+                return
+            }
+            binding.deckTagText.visibility = View.VISIBLE
+            binding.deckTagText.text = layout.deckTagLabel
+            binding.deckTagText.backgroundTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(binding.root.context, layout.deckTagColorRes))
         }
 
         private fun bindNihongoSharkExtras(note: NoteResult) {
