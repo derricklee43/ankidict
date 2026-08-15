@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AnkiDict</string>
+    <string name="search_hint">Search your Anki cards…</string>
+    <string name="status_ankidroid_missing">AnkiDroid isn\'t installed on this device.</string>
+    <string name="status_permission_needed">Requesting access to your AnkiDroid collection…</string>
+    <string name="status_permission_denied">Permission denied. Grant AnkiDroid access in system settings to search your cards.</string>
+    <string name="tap_to_reveal">Tap to reveal</string>
+</resources>

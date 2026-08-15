@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#F2F2F2"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/characterText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="40sp"
+            android:textColor="#000000" />
+
+        <TextView
+            android:id="@+id/pinyinText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:textSize="18sp"
+            android:textColor="#444444" />
+
+    </LinearLayout>
+
+    <!-- Holds everything past the character. For non-revealable note types this is always
+         visible; for revealable ones (e.g. flashcard-style decks) it starts hidden and toggles
+         open on tap, mirroring how the deck is actually studied in Anki. -->
+    <LinearLayout
+        android:id="@+id/revealGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/meaningText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#000000" />
+
+        <TextView
+            android:id="@+id/readingText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="16sp"
+            android:textColor="#444444" />
+
+        <TextView
+            android:id="@+id/mnemonicText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="16sp"
+            android:textStyle="italic"
+            android:textColor="#222222" />
+
+        <TextView
+            android:id="@+id/vocabText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="14sp"
+            android:textColor="#333333" />
+
+        <TextView
+            android:id="@+id/extraText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="14sp"
+            android:textColor="#555555" />
+
+        <TextView
+            android:id="@+id/metaText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="12sp"
+            android:textColor="#666666" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/revealHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/tap_to_reveal"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:textColor="#888888"
+        android:visibility="gone" />
+
+</LinearLayout>
