@@ -17,3 +17,9 @@ val CHARACTER_FIELD_INDEX: Map<Long, Int> = mapOf(
     CHINESE_MNEMONICS_MODEL_ID to 2,
     NIHONGO_SHARK_KANJI_MODEL_ID to 4,
 )
+
+// The field index holding the English meaning/keyword, ranked just below a character match.
+val MEANING_FIELD_INDEX: Map<Long, Int> = mapOf(
+    CHINESE_MNEMONICS_MODEL_ID to 0,
+    NIHONGO_SHARK_KANJI_MODEL_ID to 3,
+)

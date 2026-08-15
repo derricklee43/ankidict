@@ -37,7 +37,7 @@ private val NIHONGO_SHARK_FIELD_NAMES = listOf(
 
 private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
     CHINESE_MNEMONICS_MODEL_ID to NoteLayout(
-        meaningField = 0,
+        meaningField = MEANING_FIELD_INDEX.getValue(CHINESE_MNEMONICS_MODEL_ID),
         frequencyField = 1,
         characterField = CHARACTER_FIELD_INDEX.getValue(CHINESE_MNEMONICS_MODEL_ID),
         mnemonicField = 3,
@@ -49,7 +49,7 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
     ),
     NIHONGO_SHARK_KANJI_MODEL_ID to NoteLayout(
         characterField = CHARACTER_FIELD_INDEX.getValue(NIHONGO_SHARK_KANJI_MODEL_ID), // kanji
-        meaningField = 3, // keyword
+        meaningField = MEANING_FIELD_INDEX.getValue(NIHONGO_SHARK_KANJI_MODEL_ID), // keyword
         mnemonicField = 10, // myStory -- the field the deck's own template actually renders
         knownFields = setOf(2, 3, 4, 5, 7, 8, 9, 10, 15, 16, 17, 18, 19, 20),
         revealable = true,

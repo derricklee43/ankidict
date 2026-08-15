@@ -60,13 +60,41 @@ class AnkiRepository(private val context: Context) {
                 )
             }
         }
-        // A match on the character/kanji field itself outranks a match found elsewhere
-        // (meaning, mnemonic, vocab, etc.) -- that's what you're searching for a character by.
-        return results.sortedByDescending { matchesCharacterField(it, query) }
+        // Rank a match on the character/kanji field above a match on the meaning field, above
+        // a match found anywhere else (mnemonic, vocab, etc.). Within each tier, interleave the
+        // two decks round-robin so a deck with far more raw matches (e.g. NihongoShark's huge,
+        // narrative mnemonics matching a common substring) doesn't bury the other deck's results.
+        return results
+            .groupBy { matchPriority(it, query) }
+            .toSortedMap()
+            .values
+            .flatMap { interleaveByModel(it) }
     }
 
-    private fun matchesCharacterField(note: NoteResult, query: String): Boolean {
-        val fieldIndex = CHARACTER_FIELD_INDEX[note.modelId] ?: return false
+    private fun matchPriority(note: NoteResult, query: String): Int {
+        if (fieldMatches(note, query, CHARACTER_FIELD_INDEX)) return 0
+        if (fieldMatches(note, query, MEANING_FIELD_INDEX)) return 1
+        return 2
+    }
+
+    private fun fieldMatches(note: NoteResult, query: String, fieldIndexByModel: Map<Long, Int>): Boolean {
+        val fieldIndex = fieldIndexByModel[note.modelId] ?: return false
         return note.fields.getOrNull(fieldIndex)?.contains(query, ignoreCase = true) == true
+    }
+
+    private fun interleaveByModel(notes: List<NoteResult>): List<NoteResult> {
+        val queues = notes.groupBy { it.modelId }.values.map { ArrayDeque(it) }
+        val result = mutableListOf<NoteResult>()
+        var addedAny = true
+        while (addedAny) {
+            addedAny = false
+            for (queue in queues) {
+                queue.removeFirstOrNull()?.let {
+                    result.add(it)
+                    addedAny = true
+                }
+            }
+        }
+        return result
     }
 }
