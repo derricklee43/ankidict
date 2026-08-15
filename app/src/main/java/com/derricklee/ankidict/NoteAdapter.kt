@@ -44,8 +44,8 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
         pinyinField = 4,
         // 5 unconfirmed, 6/7 are the mnemonic image (html/filename, not renderable yet), 8-11 unconfirmed.
         knownFields = setOf(0, 1, 2, 3, 4, 6, 7),
-        deckTagLabel = "Hanzi",
-        deckTagColorRes = R.color.tag_hanzi_red,
+        deckTagLabel = "中文",
+        deckTagColorRes = R.color.tag_chinese_red,
     ),
     NIHONGO_SHARK_KANJI_MODEL_ID to NoteLayout(
         characterField = CHARACTER_FIELD_INDEX.getValue(NIHONGO_SHARK_KANJI_MODEL_ID), // kanji
@@ -53,8 +53,8 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
         mnemonicField = 10, // myStory -- the field the deck's own template actually renders
         knownFields = setOf(2, 3, 4, 5, 7, 8, 9, 10, 15, 16, 17, 18, 19, 20),
         revealable = true,
-        deckTagLabel = "Kanji",
-        deckTagColorRes = R.color.tag_kanji_blue,
+        deckTagLabel = "日本語",
+        deckTagColorRes = R.color.tag_japanese_blue,
     ),
 )
 
