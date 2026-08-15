@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var repository: AnkiRepository
     private lateinit var searchService: SearchService
-    private val adapter = SearchResultAdapter()
+    private lateinit var adapter: SearchResultAdapter
 
     private val searchHandler = Handler(Looper.getMainLooper())
     private var pendingSearch: Runnable? = null
@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
         repository = AnkiRepository(this)
         searchService = SearchService(repository, DictionaryRepository(this))
+        adapter = SearchResultAdapter(AudioRepository(this))
 
         binding.resultsList.layoutManager = LinearLayoutManager(this)
         binding.resultsList.adapter = adapter
@@ -47,6 +48,11 @@ class MainActivity : AppCompatActivity() {
         })
 
         checkAccessAndMaybeSearch()
+    }
+
+    override fun onDestroy() {
+        adapter.stopAudio()
+        super.onDestroy()
     }
 
     private fun scheduleSearch(query: String) {

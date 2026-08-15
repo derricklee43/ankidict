@@ -8,3 +8,4 @@ local.properties
 .externalNativeBuild
 .cxx
 scripts/dictdata/
+app/src/main/assets/audio.db

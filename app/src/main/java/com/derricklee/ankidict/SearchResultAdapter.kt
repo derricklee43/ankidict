@@ -1,6 +1,7 @@
 package com.derricklee.ankidict
 
 import android.content.res.ColorStateList
+import android.media.MediaPlayer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -52,13 +53,44 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
 private const val VIEW_TYPE_ANKI_CARD = 0
 private const val VIEW_TYPE_DICTIONARY_ENTRY = 1
 
-class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class SearchResultAdapter(private val audioRepository: AudioRepository) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var results: List<SearchResult> = emptyList()
     private val expandedNoteIds = mutableSetOf<Long>()
+    private var mediaPlayer: MediaPlayer? = null
+    private var playingNoteId: Long? = null
 
     fun submitList(newResults: List<SearchResult>) {
+        stopAudio()
         results = newResults
+        notifyDataSetChanged()
+    }
+
+    /** Releases the player -- call when the screen holding this adapter goes away. */
+    fun stopAudio() {
+        mediaPlayer?.release()
+        mediaPlayer = null
+        playingNoteId = null
+    }
+
+    private fun onPlayClick(note: NoteResult, character: String) {
+        if (playingNoteId == note.id) {
+            stopAudio()
+            notifyDataSetChanged()
+            return
+        }
+        stopAudio()
+        val file = audioRepository.audioFileFor(character) ?: return
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(file.absolutePath)
+            setOnCompletionListener {
+                stopAudio()
+                notifyDataSetChanged()
+            }
+            prepare()
+            start()
+        }
+        playingNoteId = note.id
         notifyDataSetChanged()
     }
 
@@ -75,7 +107,7 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             }
             else -> {
                 val binding = ItemNoteBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                AnkiCardViewHolder(binding, expandedNoteIds)
+                AnkiCardViewHolder(binding, expandedNoteIds, audioRepository, { id -> id == playingNoteId }, ::onPlayClick)
             }
         }
 
@@ -135,6 +167,9 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     class AnkiCardViewHolder(
         private val binding: ItemNoteBinding,
         private val expandedNoteIds: MutableSet<Long>,
+        private val audioRepository: AudioRepository,
+        private val isPlaying: (Long) -> Boolean,
+        private val onPlayClick: (NoteResult, String) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(note: NoteResult) {
@@ -142,6 +177,7 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             val card = note.toCard()
 
             bindDeckTag(layout)
+            bindAudio(note, card?.word)
             bindOptional(binding.characterText, card?.word)
             bindOptional(binding.readingText, card?.reading?.let(::formatReading))
             bindOptional(binding.meaningText, card?.meaning)
@@ -179,6 +215,24 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             binding.metaText.text = metaParts.joinToString("  ·  ")
 
             applyRevealState(layout, note.id)
+        }
+
+        private fun bindAudio(note: NoteResult, character: String?) {
+            // audio.db is Chinese-only today. Gate on the deck, not just character presence --
+            // Chinese hanzi and Japanese kanji often share a Unicode code point (e.g. 自), and a
+            // bare hasAudio(character) check would wrongly offer the Mandarin recording on a
+            // Japanese card too.
+            val isChineseNote = note.modelId == CHINESE_MNEMONICS_MODEL_ID
+            if (!isChineseNote || character.isNullOrBlank() || !audioRepository.hasAudio(character)) {
+                binding.playButton.visibility = View.GONE
+                binding.playButton.setOnClickListener(null)
+                return
+            }
+            binding.playButton.visibility = View.VISIBLE
+            binding.playButton.setImageResource(
+                if (isPlaying(note.id)) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+            )
+            binding.playButton.setOnClickListener { onPlayClick(note, character) }
         }
 
         private fun bindDeckTag(layout: NoteLayout?) {
