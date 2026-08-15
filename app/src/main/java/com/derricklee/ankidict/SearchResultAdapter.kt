@@ -16,10 +16,6 @@ import com.derricklee.ankidict.databinding.ItemNoteBinding
  * to a raw "Field N: value" dump so new decks are still readable (and inspectable) immediately.
  */
 private data class NoteLayout(
-    val characterField: Int? = null,
-    val pinyinField: Int? = null,
-    val meaningField: Int? = null,
-    val mnemonicField: Int? = null,
     val frequencyField: Int? = null,
     val knownFields: Set<Int> = emptySet(),
     // Starts collapsed to just the character, tap to reveal the rest -- mirrors decks that are
@@ -38,11 +34,7 @@ private val NIHONGO_SHARK_FIELD_NAMES = listOf(
 
 private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
     CHINESE_MNEMONICS_MODEL_ID to NoteLayout(
-        meaningField = MEANING_FIELD_INDEX.getValue(CHINESE_MNEMONICS_MODEL_ID),
         frequencyField = 1,
-        characterField = CHARACTER_FIELD_INDEX.getValue(CHINESE_MNEMONICS_MODEL_ID),
-        mnemonicField = 3,
-        pinyinField = 4,
         // 5 unconfirmed, 6/7 are the mnemonic image (html/filename, not renderable yet), 8-11 unconfirmed.
         knownFields = setOf(0, 1, 2, 3, 4, 6, 7),
         revealable = true,
@@ -50,9 +42,6 @@ private val NOTE_LAYOUTS: Map<Long, NoteLayout> = mapOf(
         deckTagColorRes = R.color.tag_chinese_red,
     ),
     NIHONGO_SHARK_KANJI_MODEL_ID to NoteLayout(
-        characterField = CHARACTER_FIELD_INDEX.getValue(NIHONGO_SHARK_KANJI_MODEL_ID), // kanji
-        meaningField = MEANING_FIELD_INDEX.getValue(NIHONGO_SHARK_KANJI_MODEL_ID), // keyword
-        mnemonicField = 10, // myStory -- the field the deck's own template actually renders
         knownFields = setOf(2, 3, 4, 5, 7, 8, 9, 10, 15, 16, 17, 18, 19, 20),
         revealable = true,
         deckTagLabel = "日本語",
@@ -150,17 +139,17 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
         fun bind(note: NoteResult) {
             val layout = NOTE_LAYOUTS[note.modelId]
+            val card = note.toCard()
 
             bindDeckTag(layout)
-            bindOptional(binding.characterText, layout?.characterField?.let { note.fields.getOrNull(it) })
-            bindOptional(binding.pinyinText, layout?.pinyinField?.let { note.fields.getOrNull(it) })
-            bindOptional(binding.meaningText, layout?.meaningField?.let { note.fields.getOrNull(it) })
-            bindOptional(binding.mnemonicText, layout?.mnemonicField?.let { note.fields.getOrNull(it) })
+            bindOptional(binding.characterText, card?.word)
+            bindOptional(binding.readingText, card?.reading?.let(::formatReading))
+            bindOptional(binding.meaningText, card?.meaning)
+            bindOptional(binding.mnemonicText, card?.mnemonic)
 
             if (note.modelId == NIHONGO_SHARK_KANJI_MODEL_ID) {
-                bindNihongoSharkExtras(note)
+                bindNihongoSharkVocab(note)
             } else {
-                binding.readingText.visibility = View.GONE
                 bindOptional(binding.vocabText, null)
             }
 
@@ -203,15 +192,7 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 ColorStateList.valueOf(ContextCompat.getColor(binding.root.context, layout.deckTagColorRes))
         }
 
-        private fun bindNihongoSharkExtras(note: NoteResult) {
-            val onYomi = note.fields.getOrNull(19)
-            val kunYomi = note.fields.getOrNull(20)
-            val reading = listOfNotNull(
-                onYomi?.takeIf { it.isNotBlank() }?.let { "On: $it" },
-                kunYomi?.takeIf { it.isNotBlank() }?.let { "Kun: $it" },
-            ).joinToString("   ")
-            bindOptional(binding.readingText, reading)
-
+        private fun bindNihongoSharkVocab(note: NoteResult) {
             val constituent = note.fields.getOrNull(7)?.takeIf { it.isNotBlank() }
             val words = note.fields.getOrNull(17)?.takeIf { it.isNotBlank() }?.replace("<br>", "\n")
             val examples = note.fields.getOrNull(18)?.takeIf { it.isNotBlank() }
@@ -254,3 +235,6 @@ class SearchResultAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         }
     }
 }
+
+private fun formatReading(reading: Map<String, List<String>>): String =
+    reading.entries.joinToString("   ") { (label, values) -> "$label: ${values.joinToString("、")}" }
