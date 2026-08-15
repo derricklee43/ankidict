@@ -11,6 +11,9 @@ data class NoteResult(
     val fields: List<String>,
 )
 
+/** [exact] is the character/meaning-field tier (already deck-interleaved); [rest] is everything else. */
+data class TieredNotes(val exact: List<NoteResult>, val rest: List<NoteResult>)
+
 private const val FIELD_SEPARATOR = "\u001F"
 
 class AnkiRepository(private val context: Context) {
@@ -19,30 +22,15 @@ class AnkiRepository(private val context: Context) {
         AddContentApi.getAnkiDroidPackageName(context) != null
 
     /**
-     * Searches every note's fields for [query] and returns the full contents of each match.
-     * A query of multiple CJK characters (e.g. pasting a word/phrase) is split into one lookup
-     * per character, run and ranked independently, then interleaved (each character's top
-     * Japanese + Chinese hits, then each character's next, and so on) -- so each character gets
-     * its own top-of-list spot instead of one character's loosely-related tail of matches
-     * burying the next character's results. A single character, or any non-CJK query (e.g. an
-     * English word), runs as one plain substring search, unchanged.
+     * Searches every note's fields for [query] (a plain substring match, restricted to note
+     * types this app has a display mapping for) and ranks them: a match on the character/kanji
+     * field, then a match on the meaning field, then anywhere else -- with each tier interleaved
+     * round-robin across decks so a deck with far more raw matches (e.g. NihongoShark's huge,
+     * narrative mnemonics matching a common substring) doesn't bury the other deck's results.
      */
-    fun searchNotes(query: String): List<NoteResult> {
-        if (query.isBlank()) return emptyList()
+    fun searchTiered(query: String): TieredNotes {
+        if (query.isBlank()) return TieredNotes(emptyList(), emptyList())
 
-        val characters = query.trim()
-        if (characters.length > 1 && characters.all(::isCjkCharacter)) {
-            // Each character's own list is already tier+deck ranked (best match first). Round-
-            // robin across characters in (deck-sized) chunks, so e.g. char 1's top Japanese +
-            // Chinese hits, then char 2's, then char 3's... come before any character's deeper,
-            // looser matches -- rather than one character's long tail burying the next character.
-            val perCharacterResults = characters.map { searchSingleQuery(it.toString()) }
-            return interleave(perCharacterResults, chunkSize = SEARCHABLE_MODEL_IDS.size)
-        }
-        return searchSingleQuery(query)
-    }
-
-    private fun searchSingleQuery(query: String): List<NoteResult> {
         val modelPlaceholders = SEARCHABLE_MODEL_IDS.joinToString(",") { "?" }
         val selection = "flds LIKE ? AND mid IN ($modelPlaceholders)"
         val selectionArgs = (listOf("%$query%") + SEARCHABLE_MODEL_IDS.map { it.toString() }).toTypedArray()
@@ -56,7 +44,7 @@ class AnkiRepository(private val context: Context) {
             selection,
             selectionArgs,
             null,
-        ) ?: return emptyList()
+        ) ?: return TieredNotes(emptyList(), emptyList())
 
         val results = mutableListOf<NoteResult>()
         cursor.use {
@@ -76,15 +64,11 @@ class AnkiRepository(private val context: Context) {
                 )
             }
         }
-        // Rank a match on the character/kanji field above a match on the meaning field, above
-        // a match found anywhere else (mnemonic, vocab, etc.). Within each tier, interleave the
-        // two decks round-robin so a deck with far more raw matches (e.g. NihongoShark's huge,
-        // narrative mnemonics matching a common substring) doesn't bury the other deck's results.
-        return results
-            .groupBy { matchPriority(it, query) }
-            .toSortedMap()
-            .values
-            .flatMap { tier -> interleave(tier.groupBy { it.modelId }.values.toList()) }
+
+        val byTier = results.groupBy { matchPriority(it, query) }
+        val exact = interleaveByModel(byTier[0].orEmpty())
+        val rest = (1..2).flatMap { tier -> interleaveByModel(byTier[tier].orEmpty()) }
+        return TieredNotes(exact, rest)
     }
 
     private fun matchPriority(note: NoteResult, query: String): Int {
@@ -98,31 +82,6 @@ class AnkiRepository(private val context: Context) {
         return note.fields.getOrNull(fieldIndex)?.contains(query, ignoreCase = true) == true
     }
 
-    private fun isCjkCharacter(c: Char): Boolean {
-        val block = Character.UnicodeBlock.of(c)
-        return block == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS ||
-            block == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A ||
-            block == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
-    }
-
-    // Round-robins [lists] together, taking [chunkSize] items at a time from each list in turn,
-    // so every list gets a turn near the top instead of the first list's full length running out
-    // before the next list contributes anything.
-    private fun interleave(lists: List<List<NoteResult>>, chunkSize: Int = 1): List<NoteResult> {
-        val queues = lists.map { ArrayDeque(it) }
-        val result = mutableListOf<NoteResult>()
-        var addedAny = true
-        while (addedAny) {
-            addedAny = false
-            for (queue in queues) {
-                repeat(chunkSize) {
-                    queue.removeFirstOrNull()?.let {
-                        result.add(it)
-                        addedAny = true
-                    }
-                }
-            }
-        }
-        return result
-    }
+    private fun interleaveByModel(notes: List<NoteResult>): List<NoteResult> =
+        interleave(notes.groupBy { it.modelId }.values.toList())
 }

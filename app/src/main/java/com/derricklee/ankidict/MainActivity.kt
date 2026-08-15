@@ -21,7 +21,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var repository: AnkiRepository
-    private val adapter = NoteAdapter()
+    private lateinit var searchService: SearchService
+    private val adapter = SearchResultAdapter()
 
     private val searchHandler = Handler(Looper.getMainLooper())
     private var pendingSearch: Runnable? = null
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         repository = AnkiRepository(this)
+        searchService = SearchService(repository, DictionaryRepository(this))
 
         binding.resultsList.layoutManager = LinearLayoutManager(this)
         binding.resultsList.adapter = adapter
@@ -95,7 +97,7 @@ class MainActivity : AppCompatActivity() {
             adapter.submitList(emptyList())
             return
         }
-        adapter.submitList(repository.searchNotes(query))
+        adapter.submitList(searchService.search(query))
     }
 
     private fun showStatus(message: String) {
